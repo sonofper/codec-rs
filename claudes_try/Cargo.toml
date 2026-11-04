@@ -1,0 +1,13 @@
+[package]
+name = "claudes_try"
+version = "1.0.0"
+edition = "2024"
+description = "Claude's try: a context-mixing (PAQ-style) compressor used as a benchmark"
+
+[dependencies]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
