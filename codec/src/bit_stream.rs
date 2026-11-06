@@ -12,6 +12,21 @@ impl BitStream {
         }
     }
 
+    pub fn push_bits(&mut self, code: u64, mut len: u8) {
+        while len > 0 {
+            let used = self.length % 8;
+            if used == 0 {
+                self.buffer.push(0);
+            }
+            let take = (8 - used).min(len as usize) as u8;
+            let chunk = ((code >> (len - take)) & ((1u64 << take) - 1)) as u8;
+            let last = self.buffer.last_mut().unwrap();
+            *last = ((*last as u16) << take) as u8 | chunk;
+            self.length += take as usize;
+            len -= take;
+        }
+    }
+
     pub fn from_buffer(buffer: &[u8], bits: usize) -> Self {
         Self {
             buffer: buffer.to_vec(),

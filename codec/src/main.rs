@@ -1,6 +1,5 @@
 use clap::Parser;
 use std::path::PathBuf;
-mod ac;
 
 fn main() {
     let args = Args::parse();
@@ -8,20 +7,19 @@ fn main() {
 
     match args.mode {
         Mode::HMCompress => {
-            let compressed = codec::compress(&input_file);
+            let compressed = codec::hm::compress(&input_file);
             std::fs::write(args.output, compressed).unwrap();
         }
         Mode::HMDecompress => {
-            let decompressed = codec::decompress(&input_file);
+            let decompressed = codec::hm::decompress(&input_file);
             std::fs::write(args.output, decompressed).unwrap();
         }
         Mode::ACCompress => {
-            let compressed = crate::ac::compress(&input_file);
+            let compressed = codec::ac::compress(&input_file);
             std::fs::write(args.output, compressed).unwrap();
         }
         Mode::ACDecompress => {
-            let decompressed =
-                crate::ac::decompress(&input_file).expect_err("Could not decompress!");
+            let decompressed = codec::ac::decompress(&input_file).expect("Could not decompress!");
             std::fs::write(args.output, decompressed).unwrap();
         }
     }
