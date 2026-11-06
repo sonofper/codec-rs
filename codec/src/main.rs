@@ -6,20 +6,12 @@ fn main() {
     let input_file = std::fs::read(args.input).unwrap();
 
     match args.mode {
-        Mode::HMCompress => {
-            let compressed = codec::hm::compress(&input_file);
+        Mode::DeflateCompress => {
+            let compressed = codec::deflate::compress(&input_file);
             std::fs::write(args.output, compressed).unwrap();
         }
-        Mode::HMDecompress => {
-            let decompressed = codec::hm::decompress(&input_file);
-            std::fs::write(args.output, decompressed).unwrap();
-        }
-        Mode::ACCompress => {
-            let compressed = codec::ac::compress(&input_file);
-            std::fs::write(args.output, compressed).unwrap();
-        }
-        Mode::ACDecompress => {
-            let decompressed = codec::ac::decompress(&input_file).expect("Could not decompress!");
+        Mode::DeflateDecompress => {
+            let decompressed = codec::deflate::decompress(&input_file);
             std::fs::write(args.output, decompressed).unwrap();
         }
     }
@@ -34,8 +26,6 @@ struct Args {
 
 #[derive(Debug, Clone, Copy, clap::ValueEnum)]
 enum Mode {
-    HMCompress,
-    HMDecompress,
-    ACCompress,
-    ACDecompress,
+    DeflateCompress,
+    DeflateDecompress,
 }

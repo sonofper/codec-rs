@@ -1,0 +1,28 @@
+# On every push to main: test, benchmark and save the results on the `benchmarks` branch.
+name: bench
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cd codec && cargo test --release && cargo build --release
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin benchmarks
+          git worktree add results origin/benchmarks
+          python3 bench/bench.py run codec/target/release/codec HEAD results/history.csv
+          python3 bench/bench.py render results/history.csv results/BENCHMARKS.md
+          cd results
+          git add history.csv BENCHMARKS.md
+          git commit -m "Benchmark $(git -C .. log -1 --format='%h %s')"
+          git push origin HEAD:benchmarks

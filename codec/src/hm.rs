@@ -5,11 +5,12 @@ use crate::bit_stream::BitStream;
 
 const HEADER_SIZE: u32 = 4;
 
-pub fn compress(data: &[u8]) -> Vec<u8> {
+// Returns None when the input has fewer than 2 different words, since that can't make a tree.
+pub fn compress(data: &[u8]) -> Option<Vec<u8>> {
     let mut buffer = vec![0; 4];
     let tokens = tokenize(data);
     let occurences = find_occurences(&tokens);
-    let tree = encode_huffman_tree(occurences).unwrap();
+    let tree = encode_huffman_tree(occurences)?;
 
     serialize_huffman_tree(&tree, &mut buffer);
     let huffman_tree_length = buffer.len() as u32 - HEADER_SIZE;
@@ -17,7 +18,7 @@ pub fn compress(data: &[u8]) -> Vec<u8> {
     let bit_stream = compress_huffman(&tokens, &tree);
     buffer.extend_from_slice(&(bit_stream.len() as u64).to_le_bytes());
     buffer.extend_from_slice(bit_stream.as_bytes());
-    buffer
+    Some(buffer)
 }
 
 pub fn decompress(data: &[u8]) -> Vec<u8> {
@@ -34,18 +35,18 @@ pub fn decompress(data: &[u8]) -> Vec<u8> {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-struct Node {
-    left: NodeVariant,
-    right: NodeVariant,
+pub(crate) struct Node {
+    pub(crate) left: NodeVariant,
+    pub(crate) right: NodeVariant,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-enum NodeVariant {
+pub(crate) enum NodeVariant {
     Node(Box<Node>),
     Leaf(Vec<u8>),
 }
 
-type TreeData<'a> = &'a [u8];
+pub(crate) type TreeData<'a> = &'a [u8];
 
 fn tokenize(data: &[u8]) -> Vec<TreeData<'_>> {
     let is_word = |b: u8| b.is_ascii_alphanumeric() || b == b'_' || b >= 0x80;
@@ -87,7 +88,7 @@ impl Ord for HeapEntry {
     }
 }
 
-fn encode_huffman_tree(occurences: Vec<(usize, NodeVariant)>) -> Option<Box<Node>> {
+pub(crate) fn encode_huffman_tree(occurences: Vec<(usize, NodeVariant)>) -> Option<Box<Node>> {
     let mut heap: BinaryHeap<HeapEntry> = occurences
         .into_iter()
         .map(|(count, node)| HeapEntry(count, node))
@@ -109,7 +110,7 @@ fn encode_huffman_tree(occurences: Vec<(usize, NodeVariant)>) -> Option<Box<Node
     }
 }
 
-fn serialize_huffman_tree(tree: &Node, writer: &mut Vec<u8>) {
+pub(crate) fn serialize_huffman_tree(tree: &Node, writer: &mut Vec<u8>) {
     writer.push(0);
     match &tree.left {
         NodeVariant::Leaf(leaf) => serialize_leaf_node(leaf, writer),
@@ -136,7 +137,7 @@ fn serialize_leaf_node(leaf: &[u8], writer: &mut Vec<u8>) {
     writer.extend_from_slice(leaf);
 }
 
-fn deserialize_huffman_tree(mut data: &[u8]) -> Option<(NodeVariant, usize)> {
+pub(crate) fn deserialize_huffman_tree(mut data: &[u8]) -> Option<(NodeVariant, usize)> {
     let is_leaf = data[0] != 0;
     if is_leaf {
         if data[0] & 0x80 != 0 {
@@ -171,7 +172,7 @@ fn deserialize_huffman_tree(mut data: &[u8]) -> Option<(NodeVariant, usize)> {
     }
 }
 
-fn find_occurences(tokens: &[TreeData]) -> Vec<(usize, NodeVariant)> {
+pub(crate) fn find_occurences(tokens: &[TreeData]) -> Vec<(usize, NodeVariant)> {
     let mut map: HashMap<TreeData, usize> = HashMap::new();
     for &word in tokens {
         *map.entry(word).or_default() += 1;
@@ -192,7 +193,7 @@ fn compress_huffman(data: &[TreeData], tree: &Node) -> BitStream {
     out_stream
 }
 
-fn traverse_tree<'a>(
+pub(crate) fn traverse_tree<'a>(
     node: &'a Node,
     map: &mut HashMap<TreeData<'a>, (u64, u8)>,
     code: u64,
