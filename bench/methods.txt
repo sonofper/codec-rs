@@ -1,2 +1,0 @@
-# <name> <compress mode> <decompress mode>, update when main.rs changes
-deflate deflate-compress deflate-decompress
